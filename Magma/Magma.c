@@ -214,6 +214,12 @@ void ECB_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_pa
     fclose(encrypt_file);
 }
 
+void complete(unsigned char* block, size_t len)
+{
+    block[len] = 0b10000000;
+    memset(block + (len + 1) * sizeof(unsigned char), 0, bytes_count - len);
+}
+
 void ECB_Magma_DEC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file)
 {
     unsigned char buffer[16];
@@ -253,10 +259,105 @@ void ECB_Magma_DEC(unsigned char* input_file_path, unsigned char* output_file_pa
     fclose(decrypt_file);
 }
 
+void input_IV(unsigned char* IV_path, unsigned char* IV)
+{
+    unsigned char buffer[16];
+    size_t buffer_len = 0;
+
+    FILE* IV_file = fopen(IV_path, "rb");
+
+    if (!IV_file)
+    {
+        printf("fopen(IV_file) error\n");
+        exit(0);
+    }
+
+    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, IV_file);
+
+    if (buffer_len < bytes_count)
+    {
+        printf("fread(IV_file) error\n");
+        exit(0);
+    }
+
+    fclose(IV_file);
+
+    memcpy(IV, buffer, bytes_count);
+}
+
+void next_IV(unsigned char* IV)
+{
+    int i = (bytes_count << 1) - 1;
+
+    while (i >= 0)
+    {
+        if (IV[i] + 1 > 255)
+        {
+            IV[i] = 0;
+            i--;
+        }
+        else
+        {
+            IV[i]++;
+            break;
+        }
+    }
+}
+
+void CTR_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file, unsigned char* IV_file_path)
+{
+    unsigned char buffer[16], block[16];
+    size_t buffer_len = 0;
+
+    unsigned char keys[32][bytes_count];
+
+    key_schedule(keys, "key.txt");
+
+    unsigned char IV[16] = { 0x00 };
+    input_IV(IV_file_path, IV);
+
+    FILE* input_file = fopen(input_file_path, "rb");
+
+    if (!input_file)
+    {
+        printf("fopen(input_file) error\n");
+        exit(0);
+    }
+
+    FILE* encrypt_file = fopen(output_file_path, "wb");
+
+    if (!encrypt_file)
+    {
+        printf("fopen(encrypt_file) error\n");
+        exit(0);
+    }
+
+    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count << 1, input_file);
+
+    while (buffer_len > 0)
+    {
+        if (buffer_len < bytes_count)
+        {
+            complete(buffer, buffer_len);
+        }
+
+        memcpy(block, IV, bytes_count << 1);
+
+        Magma_ENC(block, keys);
+        X_block(buffer, block, bytes_count << 1);
+
+        fwrite(buffer, sizeof(unsigned char), bytes_count << 1, encrypt_file);
+
+        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count << 1, input_file);
+        next_IV(IV);
+    }
+}
+
 int main(int argc, char* argv[])
 {
     ECB_Magma_ENC("input.txt", "encrypted.txt", "key.txt");
     ECB_Magma_DEC("encrypted.txt", "decrypted.txt", "key.txt");
+    CTR_Magma_ENC("input.txt", "encrypted.txt", "key.txt", "IV.txt");
 
     return 0;
 }
