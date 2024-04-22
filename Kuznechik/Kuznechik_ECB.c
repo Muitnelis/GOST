@@ -2,10 +2,8 @@
 #include <memory.h>
 #include <stdlib.h>
 
-// Вспомогательные переменные
 #define bytes_count 16
 
-// S-блок, массив перестановки шифрования
 unsigned char S[] = {
     0xfc, 0xee, 0xdd, 0x11, 0xcf, 0x6e, 0x31, 0x16, 0xfb, 0xc4, 0xfa, 0xda, 0x23, 0xc5, 0x04, 0x4d,
     0xe9, 0x77, 0xf0, 0xdb, 0x93, 0x2e, 0x99, 0xba, 0x17, 0x36, 0xf1, 0xbb, 0x14, 0xcd, 0x5f, 0xc1,
@@ -44,7 +42,6 @@ unsigned char S_inv[] = {
     0x12, 0x1a, 0x48, 0x68, 0xf5, 0x81, 0x8b, 0xc7, 0xd6, 0x20, 0x0a, 0x08, 0x00, 0x4c, 0xd7, 0x74
 };
 
-// Педвычисленная таблица возведения в степень в поле GF(2^8)
 unsigned char pow2[] = {
     0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0xc3, 0x45, 0x8a, 0xd7, 0x6d, 0xda, 0x77, 0xee,
     0x1f, 0x3e, 0x7c, 0xf8, 0x33, 0x66, 0xcc, 0x5b, 0xb6, 0xaf, 0x9d, 0xf9, 0x31, 0x62, 0xc4, 0x4b,
@@ -64,7 +61,6 @@ unsigned char pow2[] = {
     0x7d, 0xfa, 0x37, 0x6e, 0xdc, 0x7b, 0xf6, 0x2f, 0x5e, 0xbc, 0xbb, 0xb5, 0xa9, 0x91, 0xe1, 0x01
 };
 
-// Значения констант C_i
 unsigned char c_const[][16] = {
     { 0x6e, 0xa2, 0x76, 0x72, 0x6c, 0x48, 0x7a, 0xb8, 0x5d, 0x27, 0xbd, 0x10, 0xdd, 0x84, 0x94, 0x01 },
     { 0xdc, 0x87, 0xec, 0xe4, 0xd8, 0x90, 0xf4, 0xb3, 0xba, 0x4e, 0xb9, 0x20, 0x79, 0xcb, 0xeb, 0x02 },
@@ -113,7 +109,6 @@ void print_block(unsigned char* block, int len)
     printf("\n");
 }
 
-// Функция перестановки
 void S_block(unsigned char* block, unsigned char* substitution)
 {
     for (int i = 0; i < bytes_count; i++)
@@ -122,7 +117,6 @@ void S_block(unsigned char* block, unsigned char* substitution)
     }
 }
 
-// Функция умножения в поле GF(2^8)
 unsigned char galua_mul(a, b)
 {
     unsigned char pow2a, pow2b;
@@ -147,7 +141,6 @@ unsigned char galua_mul(a, b)
     return pow2[pow2a + pow2b];
 }
 
-// l-преобразование
 unsigned char l_draft(unsigned char* a)
 {
     unsigned char answer = 0;
@@ -172,7 +165,6 @@ unsigned char l_draft(unsigned char* a)
     return answer;
 }
 
-// R-преобразование
 void R_block(unsigned char* block)
 {
     unsigned char* new_block = (unsigned char*)malloc(sizeof(unsigned char) * bytes_count);
@@ -184,7 +176,6 @@ void R_block(unsigned char* block)
     free(new_block);
 }
 
-// L-преобразование
 void L_block(unsigned char* block)
 {
     for (int i = 0; i < bytes_count; i++)
@@ -193,7 +184,6 @@ void L_block(unsigned char* block)
     }
 }
 
-// X-преобразование (XOR)
 void X_block(unsigned char* block, unsigned char* key, unsigned char bytes)
 {
     for (int i = 0; i < bytes; i++)
@@ -202,7 +192,6 @@ void X_block(unsigned char* block, unsigned char* key, unsigned char bytes)
     }
 }
 
-// Сеть Фейстеля
 void Feistel(unsigned char* block, unsigned char* key, int bytes)
 {
     int half_len = bytes >> 1;
@@ -230,7 +219,6 @@ void Feistel(unsigned char* block, unsigned char* key, int bytes)
 }
 
 
-// Функция развертывания ключа (расписание ключей)
 void key_schedule(unsigned char* keys, unsigned char* key_file_path)
 {
     unsigned char buffer[32];
@@ -269,7 +257,6 @@ void key_schedule(unsigned char* keys, unsigned char* key_file_path)
     fclose(key_file);
 };
 
-// Шифр Kuznechik
 void Kuznechik_ENC(unsigned char* block, unsigned char* keys)
 {
     for (int i = 0; i < 9; i++)
@@ -286,7 +273,6 @@ void ECB_Kuznechik_ENC(unsigned char* input_file_path, unsigned char* output_fil
     unsigned char buffer[32];
     size_t buffer_len = 0;
 
-    // Значения раундовых ключей
     unsigned char keys[10][bytes_count];
 
     key_schedule(keys, key_file);
@@ -321,7 +307,6 @@ void ECB_Kuznechik_ENC(unsigned char* input_file_path, unsigned char* output_fil
     fclose(encrypt_file);
 }
 
-// Преобразование, обратное R-преобразованию
 void R_inv(unsigned char* block)
 {
     unsigned char* new_block = (unsigned char*)malloc(sizeof(unsigned char) * bytes_count);
@@ -334,7 +319,6 @@ void R_inv(unsigned char* block)
     free(new_block);
 }
 
-// Преобразование, обратное L-преобразованию
 void L_inv(unsigned char* block)
 {
     for (int i = 0; i < bytes_count; i++)
@@ -343,7 +327,6 @@ void L_inv(unsigned char* block)
     }
 }
 
-// Расшифрование Kuznechik
 void Kuznechik_DEC(unsigned char* block, unsigned char* keys)
 {
     X_block(block, keys + 9 * bytes_count * sizeof(unsigned char), bytes_count);
@@ -361,7 +344,6 @@ void ECB_Kuznechik_DEC(unsigned char* input_file_path, unsigned char* output_fil
     unsigned char buffer[32];
     size_t buffer_len = 0;
 
-    // Значения раундовых ключей
     unsigned char keys[10][bytes_count];
 
     key_schedule(keys, key_file);
