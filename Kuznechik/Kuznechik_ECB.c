@@ -395,3 +395,11 @@ void ECB_Kuznechik_DEC(unsigned char* input_file_path, unsigned char* output_fil
     fclose(input_file);
     fclose(decrypt_file);
 }
+
+int main(int argc, char* argv[])
+{
+    ECB_Kuznechik_ENC("input.txt", "encrypted.txt", "key.txt");
+    ECB_Kuznechik_DEC("encrypted.txt", "decrypted.txt", "key.txt");
+
+    return 0;
+}
