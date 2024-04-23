@@ -2,7 +2,7 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include "Kuznechik.h"
+#include "kuznechik_lib.h"
 
 void MAC_Kuznechik(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file, int size)
 {

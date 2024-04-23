@@ -2,7 +2,7 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include "Kuznechik.h"
+#include "kuznechik_lib.h"
 
 void ECB_Kuznechik_ENC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file)
 {
