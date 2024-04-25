@@ -2,8 +2,8 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include "streebog_lib.h"
 #include "HMAC_lib.h"
+#include "streebog_lib.h"
 
 unsigned char* PBKDF2(unsigned char* P_file_path, unsigned char* S_file_path, unsigned char* output_file_path, int c, int dklen)
 {
@@ -68,16 +68,19 @@ unsigned char* PBKDF2(unsigned char* P_file_path, unsigned char* S_file_path, un
 
     free(DK);
 
-    FILE* PBKDF2_result = fopen(output_file_path, "wb");
-
-    if (!PBKDF2_result)
+    if (output_file_path)
     {
-        printf("fopen(PBKDF2_result) error\n");
-        exit(0);
-    }
+        FILE* PBKDF2_result = fopen(output_file_path, "wb");
 
-    fwrite(result, sizeof(unsigned char), dklen, PBKDF2_result);
-    fclose(PBKDF2_result);
+        if (!PBKDF2_result)
+        {
+            printf("fopen(PBKDF2_result) error\n");
+            exit(0);
+        }
+
+        fwrite(result, sizeof(unsigned char), dklen, PBKDF2_result);
+        fclose(PBKDF2_result);
+    }
 
     return result;
 }

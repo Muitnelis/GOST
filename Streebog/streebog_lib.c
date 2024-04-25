@@ -314,16 +314,19 @@ unsigned char* streebog(unsigned char* input_file_path, unsigned char* output_fi
     unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char) * (bytes >> 3));
     memcpy(result, h, bytes >> 3);
 
-    FILE* output_file = fopen(output_file_path, "wb");
-
-    if (!output_file)
+    if (output_file_path)
     {
-        printf("fopen(output_file) error\n");
-        exit(0);
-    }
+        FILE* output_file = fopen(output_file_path, "wb");
 
-    fwrite(result, sizeof(unsigned char), bytes >> 3, output_file);
-    fclose(output_file);
+        if (!output_file)
+        {
+            printf("fopen(output_file) error\n");
+            exit(0);
+        }
+
+        fwrite(result, sizeof(unsigned char), bytes >> 3, output_file);
+        fclose(output_file);
+    }
 
     return result;
 }

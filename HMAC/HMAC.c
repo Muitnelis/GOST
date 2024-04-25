@@ -45,21 +45,26 @@ unsigned char* HMAC(unsigned char* K_file_path, unsigned char* T_file_path, unsi
         exit(0);
     }
 
-    FILE* T_file = fopen(T_file_path, "rb");
-
-    if (!T_file)
+    if (T_file_path)
     {
-        printf("fopen(T_file) error\n");
-        exit(0);
-    }
+        FILE* T_file = fopen(T_file_path, "rb");
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
+        if (!T_file)
+        {
+            printf("fopen(T_file) error\n");
+            exit(0);
+        }
 
-    while (buffer_len > 0)
-    {
-        reverse(buffer, buffer_len);
-        fwrite(buffer, sizeof(unsigned char), buffer_len, streebog_input_1);
         buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
+
+        while (buffer_len > 0)
+        {
+            reverse(buffer, buffer_len);
+            fwrite(buffer, sizeof(unsigned char), buffer_len, streebog_input_1);
+            buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
+        }
+
+        fclose(T_file);
     }
 
     memcpy(buffer, K_star, bytes_count);
@@ -70,7 +75,6 @@ unsigned char* HMAC(unsigned char* K_file_path, unsigned char* T_file_path, unsi
     fwrite(buffer, sizeof(unsigned char), bytes_count, streebog_input_1);
 
     fclose(streebog_input_1);
-    fclose(T_file);
 
     streebog("streebog_input.txt", "streebog_output.txt", bytes);
 
@@ -108,16 +112,19 @@ unsigned char* HMAC(unsigned char* K_file_path, unsigned char* T_file_path, unsi
     unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char) * (bytes >> 3));
     memcpy(result, buffer, bytes >> 3);
 
-    FILE* HMAC_result = fopen(output_file_path, "wb");
-
-    if (!HMAC_result)
+    if (output_file_path)
     {
-        printf("fopen(HMAC_result) error\n");
-        exit(0);
-    }
+        FILE* HMAC_result = fopen(output_file_path, "wb");
 
-    fwrite(result, sizeof(unsigned char), bytes >> 3, HMAC_result);
-    fclose(HMAC_result);
+        if (!HMAC_result)
+        {
+            printf("fopen(HMAC_result) error\n");
+            exit(0);
+        }
+
+        fwrite(result, sizeof(unsigned char), bytes >> 3, HMAC_result);
+        fclose(HMAC_result);
+    }
 
     return result;
 }
