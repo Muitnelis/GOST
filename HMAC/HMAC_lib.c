@@ -24,18 +24,22 @@ unsigned char* HMAC(unsigned char* K_file_path, unsigned char* T_file_path, unsi
     unsigned char K_star[bytes_count] = { 0 }, buffer[bytes_count] = { 0 };
     size_t buffer_len;
 
-    FILE* K_file = fopen(K_file_path, "rb");
-
-    if (!K_file)
+    if (K_file_path)
     {
-        printf("fopen(K_file) error\n");
-        exit(0);
+        FILE* K_file = fopen(K_file_path, "rb");
+
+        if (!K_file)
+        {
+            printf("fopen(K_file) error\n");
+            exit(0);
+        }
+
+        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, K_file);
+        memcpy(K_star, buffer, buffer_len);
+
+        fclose(K_file);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, K_file);
-    fclose(K_file);
-
-    memcpy(K_star, buffer, buffer_len);
     byte_form(K_star, bytes_count);
 
     FILE* streebog_input_1 = fopen("streebog_input.txt", "wb");
@@ -46,27 +50,24 @@ unsigned char* HMAC(unsigned char* K_file_path, unsigned char* T_file_path, unsi
         exit(0);
     }
 
-    if (T_file_path)
+    FILE* T_file = fopen(T_file_path, "rb");
+
+    if (!T_file)
     {
-        FILE* T_file = fopen(T_file_path, "rb");
-
-        if (!T_file)
-        {
-            printf("fopen(T_file) error\n");
-            exit(0);
-        }
-
-        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
-
-        while (buffer_len > 0)
-        {
-            reverse(buffer, buffer_len);
-            fwrite(buffer, sizeof(unsigned char), buffer_len, streebog_input_1);
-            buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
-        }
-
-        fclose(T_file);
+        printf("fopen(T_file) error\n");
+        exit(0);
     }
+
+    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
+
+    while (buffer_len > 0)
+    {
+        reverse(buffer, buffer_len);
+        fwrite(buffer, sizeof(unsigned char), buffer_len, streebog_input_1);
+        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, T_file);
+    }
+
+    fclose(T_file);
 
     memcpy(buffer, K_star, bytes_count);
     X_block(buffer, ipad);
