@@ -2,8 +2,11 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include "HMAC_lib.h"
-#include "streebog_lib.h"
+/*
+    Dependencies:
+        -   streebog_lib.h
+        -   HMAC.c
+*/
 
 unsigned char* KDF(unsigned char* Kin_file_path, unsigned char* label_file_path, unsigned char* seed_file_path, unsigned char* output_file_path, int bits)
 {
