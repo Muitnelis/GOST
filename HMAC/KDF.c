@@ -5,7 +5,7 @@
 #include "HMAC_lib.h"
 #include "streebog_lib.h"
 
-unsigned char* KDF(unsigned char* Kin_file_path, unsigned char* label_file_path, unsigned char* seed_file_path, unsigned char* output_file_path)
+unsigned char* KDF(unsigned char* Kin_file_path, unsigned char* label_file_path, unsigned char* seed_file_path, unsigned char* output_file_path, int bytes)
 {
     unsigned char buffer[bytes_count];
     size_t buffer_len;
@@ -64,7 +64,7 @@ unsigned char* KDF(unsigned char* Kin_file_path, unsigned char* label_file_path,
 
     unsigned char result[32];
 
-    memcpy(result, HMAC(Kin_file_path, "HMAC_input_file.txt", NULL, 256), 32);
+    memcpy(result, HMAC(Kin_file_path, "HMAC_input_file.txt", NULL, bytes), bytes >> 3);
 
     if (output_file_path)
     {
@@ -85,7 +85,7 @@ unsigned char* KDF(unsigned char* Kin_file_path, unsigned char* label_file_path,
 
 int main()
 {
-    KDF("Kin.txt", "label.txt", "seed.txt", "KDF.txt");
+    KDF("Kin.txt", "label.txt", "seed.txt", "KDF.txt", 256);
 
     return 0;
 }
