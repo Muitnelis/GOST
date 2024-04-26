@@ -253,8 +253,10 @@ unsigned char* IntToVec(int IntA, int size)
     return VecA;
 }
 
-unsigned char* streebog(unsigned char* input_file_path, unsigned char* output_file_path, int bytes)
+unsigned char* streebog(unsigned char* input_file_path, unsigned char* output_file_path, int bits)
 {
+    int bytes = bits >> 3;
+
     unsigned char h[bytes_count], m[bytes_count];
 
     unsigned char zero[bytes_count] = { 0 };
@@ -262,7 +264,7 @@ unsigned char* streebog(unsigned char* input_file_path, unsigned char* output_fi
     unsigned char one[bytes_count];
     memset(one, 1, bytes_count);
 
-    if (bytes == 256) memcpy(h, one, bytes_count);
+    if (bits == 256) memcpy(h, one, bytes_count);
     else memcpy(h, zero, bytes_count);
 
     unsigned char N[bytes_count], sigma[bytes_count];
@@ -311,8 +313,8 @@ unsigned char* streebog(unsigned char* input_file_path, unsigned char* output_fi
     g_(zero, h, N);
     g_(zero, h, sigma);
 
-    unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char) * (bytes >> 3));
-    memcpy(result, h, bytes >> 3);
+    unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char) * bytes);
+    memcpy(result, h, bytes);
 
     if (output_file_path)
     {
@@ -324,7 +326,7 @@ unsigned char* streebog(unsigned char* input_file_path, unsigned char* output_fi
             exit(0);
         }
 
-        fwrite(result, sizeof(unsigned char), bytes >> 3, output_file);
+        fwrite(result, sizeof(unsigned char), bytes, output_file);
         fclose(output_file);
     }
 
