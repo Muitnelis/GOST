@@ -432,3 +432,16 @@ void sub_mod_p(BigInt* x_, BigInt* y_, BigInt* p, BigInt* destination)
     free(x);
     free(y);
 }
+
+void mul_mod_p(BigInt* x, BigInt* y, BigInt* p, BigInt* destination)
+{
+    BigInt* result = BigInt_init(x->size + y->size);
+    memcpy(result->count, x->count, x->size);
+
+    mul_BigInt(result, y, result);
+    mod_BigInt(result, p, result);
+
+    update_options(result);
+    memcpy(destination, result, sizeof(BigInt));
+    free(result);
+}
