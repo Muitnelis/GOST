@@ -54,7 +54,7 @@ void update_options(BigInt* bigint)
     update_bits(bigint);
 }
 
-BigInt* string_to_BigInt512(char* number)
+BigInt* string_to_BigInt(char* number)
 {
     int len;
     for (len = 0; number[len] != '\0'; len++);

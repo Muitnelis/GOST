@@ -14,7 +14,7 @@ void update_size(BigInt* bigint);
 
 void update_options(BigInt* bigint);
 
-BigInt* string_to_BigInt512(char* number);
+BigInt* string_to_BigInt(char* number);
 
 void left_shift(BigInt* destination, BigInt* source, int N);
 
