@@ -1,6 +1,6 @@
 #include "magma_lib.h"
 
-unsigned char pi[][16] = {
+unsigned char pi[8][16] = {
     { 0xc, 0x4, 0x6, 0x2, 0xa, 0x5, 0xb, 0x9, 0xe, 0x8, 0xd, 0x7, 0x0, 0x3, 0xf, 0x1 },
     { 0x6, 0x8, 0x2, 0x3, 0x9, 0xa, 0x5, 0xc, 0x1, 0xe, 0x4, 0x7, 0xb, 0xd, 0x0, 0xf },
     { 0xb, 0x3, 0x5, 0x8, 0x2, 0xf, 0xa, 0xd, 0xe, 0x1, 0x7, 0x4, 0xc, 0x9, 0x6, 0x0 },
@@ -32,7 +32,7 @@ void X_block(unsigned char* block, unsigned char* key, unsigned char bytes)
     }
 }
 
-void key_schedule(unsigned char* keys, unsigned char* key_file_path)
+void key_schedule(unsigned char* keys, char* key_file_path)
 {
     unsigned char buffer[32];
     size_t buffer_len;
@@ -73,7 +73,7 @@ void t_draft(unsigned char* block)
 {
     unsigned char left, right;
 
-    for (int i = 0; i < half_block; i++)
+    for (int i = 0; i < 4; i++)
     {
         left = block[i] >> 4;
         right = block[i] & 0xf;
@@ -85,11 +85,11 @@ void t_draft(unsigned char* block)
     }
 }
 
-void Vec32plusVec32(unsigned char* Vec1, unsigned char* Vec2)
+void Vec32plusVec32(unsigned char Vec1[4], unsigned char Vec2[4])
 {
     int ost = 0;
 
-    for (int i = half_block - 1; i >= 0; i--)
+    for (int i = 3; i >= 0; i--)
     {
         ost += Vec1[i] + Vec2[i];
         Vec1[i] = ost & 0xff;
@@ -97,11 +97,12 @@ void Vec32plusVec32(unsigned char* Vec1, unsigned char* Vec2)
     }
 }
 
+
 void shift(unsigned char* destination, unsigned char* source, int N)
 {
     unsigned long long buffer = 0;
 
-    for (int i = bytes_count - 1; i >= 0; i--)
+    for (int i = 7; i >= 0; i--)
     {
         buffer = (source[i] << N) + buffer;
         destination[i] = buffer & 0xff;
@@ -109,11 +110,11 @@ void shift(unsigned char* destination, unsigned char* source, int N)
     }
 }
 
-void circle_shift(unsigned char* block, int N)
+void circle_shift(unsigned char block[4], int N)
 {
     unsigned long long answer = 0;
 
-    for (int i = 0; i < half_block; i++)
+    for (int i = 0; i < 4; i++)
     {
         answer = (answer << 8) + block[i];
     }
@@ -121,7 +122,7 @@ void circle_shift(unsigned char* block, int N)
     answer <<= N & 0xffffffff;
     answer = (answer & 0xffffffff) + (answer >> 32);
 
-    for (int i = half_block - 1; i >= 0; i--)
+    for (int i = 3; i >= 0; i--)
     {
         block[i] = answer & 0xff;
         answer >>= 8;
@@ -135,63 +136,63 @@ void g_draft(unsigned char* key, unsigned char* block)
     circle_shift(block, 11);
 }
 
-void G(unsigned char* key, unsigned char* block)
+void G(unsigned char key[4], unsigned char block[8])
 {
-    unsigned char a1[half_block], a0[half_block];
+    unsigned char a1[4], a0[4];
 
-    memcpy(a1, block, half_block);
-    memcpy(a0, block + half_block * sizeof(unsigned char), half_block);
+    memcpy(a1, block, 4);
+    memcpy(a0, block + 4 * sizeof(unsigned char), 4);
 
-    memcpy(block, a0, half_block);
+    memcpy(block, a0, 4);
 
     g_draft(key, a0);
-    X_block(a1, a0, half_block);
+    X_block(a1, a0, 4);
 
-    memcpy(block + half_block * sizeof(unsigned char), a1, half_block);
+    memcpy(block + 4 * sizeof(unsigned char), a1, 4);
 }
 
-void G_star(unsigned char* key, unsigned char* block)
+void G_star(unsigned char key[4], unsigned char block[8])
 {
-    unsigned char a1[half_block], a0[half_block];
+    unsigned char a1[4], a0[4];
 
-    memcpy(a1, block, half_block);
-    memcpy(a0, block + half_block * sizeof(unsigned char), half_block);
+    memcpy(a1, block, 4);
+    memcpy(a0, block + 4 * sizeof(unsigned char), 4);
 
-    memcpy(block + half_block * sizeof(unsigned char), a0, half_block);
+    memcpy(block + 4 * sizeof(unsigned char), a0, 4);
 
     g_draft(key, a0);
-    X_block(a1, a0, half_block);
+    X_block(a1, a0, 4);
 
-    memcpy(block, a1, half_block);
+    memcpy(block, a1, 4);
 }
 
-void Magma_ENC(unsigned char* block, unsigned char* keys)
+void Magma_ENC(unsigned char block[4], unsigned char keys[32][4])
 {
     for (int i = 0; i < 31; i++)
     {
-        G(keys + i * half_block * sizeof(unsigned char), block);
+        G(keys[i], block);
     }
-    G_star(keys + 31 * half_block * sizeof(unsigned char), block);
+    G_star(keys[31], block);
 }
 
-void Magma_DEC(unsigned char* block, unsigned char* keys)
+void Magma_DEC(unsigned char block[4], unsigned char keys[32][4])
 {
     for (int i = 31; i > 0; i--)
     {
-        G(keys + i * half_block * sizeof(unsigned char), block);
+        G(keys[i], block);
     }
-    G_star(keys, block);
+    G_star(keys[0], block);
 }
 
 void complete(unsigned char* block, size_t len)
 {
     block[len] = 0b10000000;
-    memset(block + (len + 1) * sizeof(unsigned char), 0, bytes_count - len);
+    memset(block + (len + 1) * sizeof(unsigned char), 0, 8 - len);
 }
 
-void input_IV(unsigned char* IV_path, unsigned char* IV)
+void input_IV(char* IV_path, unsigned char IV[8])
 {
-    unsigned char buffer[16];
+    unsigned char buffer[8] = { 0 };
     size_t buffer_len = 0;
 
     FILE* IV_file = fopen(IV_path, "rb");
@@ -202,9 +203,9 @@ void input_IV(unsigned char* IV_path, unsigned char* IV)
         exit(0);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), half_block, IV_file);
+    buffer_len = fread(buffer, sizeof(unsigned char), 4, IV_file);
 
-    if (buffer_len < half_block)
+    if (buffer_len < 4)
     {
         printf("fread(IV_file) error\n");
         exit(0);
@@ -212,24 +213,19 @@ void input_IV(unsigned char* IV_path, unsigned char* IV)
 
     fclose(IV_file);
 
-    memcpy(IV, buffer, half_block);
+    memcpy(IV, buffer, 8);
 }
 
-void next_IV(unsigned char* IV)
+void next_IV(unsigned char IV[8])
 {
-    int i = (bytes_count << 1) - 1;
+    int buffer = 1;
 
-    while (i >= 0)
+    for (int i = 7; i >= 0; i--)
     {
-        if (IV[i] + 1 > 255)
-        {
-            IV[i] = 0;
-            i--;
-        }
-        else
-        {
-            IV[i]++;
-            break;
-        }
+        buffer += IV[i];
+        IV[i] = buffer & 0xff;
+        buffer >>= 8;
+
+        if (buffer == 0) break;
     }
 }
