@@ -4,16 +4,16 @@
 
 #include "magma_lib.h"
 
-void CTR_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file, unsigned char* IV_file_path)
+void CTR_Magma_ENC(char* input_file_path, char* output_file_path, char* key_file, char* IV_file_path)
 {
-    unsigned char buffer[bytes_count], block[bytes_count];
+    unsigned char buffer[8] = { 0 }, block[8];
     size_t buffer_len = 0;
 
-    unsigned char keys[32][bytes_count];
+    unsigned char keys[32][4];
 
     key_schedule(keys, key_file);
 
-    unsigned char IV[bytes_count] = { 0x00 };
+    unsigned char IV[8];
     input_IV(IV_file_path, IV);
 
     FILE* input_file = fopen(input_file_path, "rb");
@@ -32,23 +32,24 @@ void CTR_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_pa
         exit(0);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+    buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
 
     while (buffer_len > 0)
     {
-        if (buffer_len < bytes_count)
+        if (buffer_len < 8)
         {
             complete(buffer, buffer_len);
         }
 
-        memcpy(block, IV, bytes_count);
+        memcpy(block, IV, 8);
 
         Magma_ENC(block, keys);
-        X_block(buffer, block, bytes_count);
+        X_block(buffer, block, 8);
 
-        fwrite(buffer, sizeof(unsigned char), bytes_count, encrypt_file);
+        fwrite(buffer, sizeof(unsigned char), 8, encrypt_file);
 
-        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+        buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
+        memset(buffer, 0, 8);
         next_IV(IV);
     }
 
@@ -56,16 +57,16 @@ void CTR_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_pa
     fclose(encrypt_file);
 }
 
-void CTR_Magma_DEC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file, unsigned char* IV_file_path)
+void CTR_Magma_DEC(char* input_file_path, char* output_file_path, char* key_file, char* IV_file_path)
 {
-    unsigned char buffer[bytes_count], block[bytes_count];
+    unsigned char buffer[8], block[8];
     size_t buffer_len = 0;
 
-    unsigned char keys[32][half_block];
+    unsigned char keys[32][4];
 
     key_schedule(keys, key_file);
 
-    unsigned char IV[bytes_count] = { 0x00 };
+    unsigned char IV[8];
     input_IV(IV_file_path, IV);
 
     FILE* encrypt_file = fopen(input_file_path, "rb");
@@ -84,18 +85,18 @@ void CTR_Magma_DEC(unsigned char* input_file_path, unsigned char* output_file_pa
         exit(0);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, encrypt_file);
+    buffer_len = fread(buffer, sizeof(unsigned char), 8, encrypt_file);
 
     while (buffer_len > 0)
     {
-        memcpy(block, IV, bytes_count);
+        memcpy(block, IV, 8);
 
         Magma_ENC(block, keys);
-        X_block(buffer, block, bytes_count);
+        X_block(buffer, block, 8);
 
-        fwrite(buffer, sizeof(unsigned char), bytes_count, decrypt_file);
+        fwrite(buffer, sizeof(unsigned char), 8, decrypt_file);
 
-        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, encrypt_file);
+        buffer_len = fread(buffer, sizeof(unsigned char), 8, encrypt_file);
         next_IV(IV);
     }
 

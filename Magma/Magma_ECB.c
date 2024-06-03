@@ -4,12 +4,12 @@
 
 #include "magma_lib.h"
 
-void ECB_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file)
+void ECB_Magma_ENC(char* input_file_path, char* output_file_path, char* key_file)
 {
-    unsigned char buffer[bytes_count];
+    unsigned char buffer[8];
     size_t buffer_len = 0;
 
-    unsigned char keys[32][half_block];
+    unsigned char keys[32][4];
 
     key_schedule(keys, key_file);
 
@@ -29,26 +29,26 @@ void ECB_Magma_ENC(unsigned char* input_file_path, unsigned char* output_file_pa
         exit(0);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+    buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
 
     while (buffer_len > 0)
     {
         Magma_ENC(buffer, keys);
-        fwrite(buffer, sizeof(unsigned char), bytes_count, encrypt_file);
+        fwrite(buffer, sizeof(unsigned char), 8, encrypt_file);
 
-        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+        buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
     }
 
     fclose(input_file);
     fclose(encrypt_file);
 }
 
-void ECB_Magma_DEC(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file)
+void ECB_Magma_DEC(char* input_file_path, char* output_file_path, char* key_file)
 {
-    unsigned char buffer[bytes_count];
+    unsigned char buffer[8];
     size_t buffer_len = 0;
 
-    unsigned char keys[32][bytes_count];
+    unsigned char keys[32][4];
 
     key_schedule(keys, key_file);
 
@@ -68,14 +68,14 @@ void ECB_Magma_DEC(unsigned char* input_file_path, unsigned char* output_file_pa
         exit(0);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+    buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
 
     while (buffer_len > 0)
     {
         Magma_DEC(buffer, keys);
-        fwrite(buffer, sizeof(unsigned char), bytes_count, decrypt_file);
+        fwrite(buffer, sizeof(unsigned char), 8, decrypt_file);
 
-        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+        buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
     }
 
     fclose(input_file);

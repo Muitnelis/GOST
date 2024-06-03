@@ -6,10 +6,10 @@
 
 void MAC_Magma(unsigned char* input_file_path, unsigned char* output_file_path, unsigned char* key_file, int size)
 {
-    unsigned char R[bytes_count] = { 0 }, K1[bytes_count] = { 0 }, K2[bytes_count] = { 0 }, C[bytes_count] = { 0 };
+    unsigned char R[8] = { 0 }, K1[8] = { 0 }, K2[8] = { 0 }, C[8] = { 0 };
     unsigned char B[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b };
 
-    unsigned char keys[32][half_block];
+    unsigned char keys[32][4];
     key_schedule(keys, key_file);
 
     Magma_ENC(R, keys);
@@ -17,20 +17,20 @@ void MAC_Magma(unsigned char* input_file_path, unsigned char* output_file_path, 
     shift(K1, R, 1);
     if (R[0] & 0b10000000)
     {
-        X_block(K1, B, bytes_count);
+        X_block(K1, B, 8);
     }
 
     shift(K2, K1, 1);
     if (K1[0] & 0b10000000)
     {
-        X_block(K2, B, bytes_count);
+        X_block(K2, B, 8);
     }
 
-    print_block(R, bytes_count);
-    print_block(K1, bytes_count);
-    print_block(K2, bytes_count);
+    print_block(R, 8);
+    print_block(K1, 8);
+    print_block(K2, 8);
 
-    unsigned char buffer[bytes_count];
+    unsigned char buffer[8];
     size_t buffer_len = 0;
 
     FILE* input_file = fopen(input_file_path, "rb");
@@ -49,28 +49,28 @@ void MAC_Magma(unsigned char* input_file_path, unsigned char* output_file_path, 
         exit(0);
     }
 
-    buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
-    if (buffer_len < bytes_count)
+    buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
+    if (buffer_len < 8)
     {
         complete(buffer, buffer_len);
     }
 
     while (buffer_len > 0)
     {
-        X_block(C, buffer, bytes_count);
+        X_block(C, buffer, 8);
 
-        buffer_len = fread(buffer, sizeof(unsigned char), bytes_count, input_file);
+        buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
 
-        if (buffer_len < bytes_count)
+        if (buffer_len < 8)
         {
             if (buffer_len == 0)
             {
-                X_block(C, K1, bytes_count);
+                X_block(C, K1, 8);
             }
             else
             {
                 complete(buffer, buffer_len);
-                X_block(C, K2, bytes_count);
+                X_block(C, K2, 8);
             }
 
             Magma_ENC(C, keys);
