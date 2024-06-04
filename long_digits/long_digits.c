@@ -1,12 +1,5 @@
 ﻿#include "long_digits.h"
 
-typedef struct
-{
-    unsigned char* count;
-    int size;
-    int bits;
-} BigInt;
-
 void print_BigInt(BigInt bigint)
 {
     for (int i = bigint.size - 1, j = 0; i >= 0; i--, j++)

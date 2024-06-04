@@ -2,7 +2,12 @@
 #include <stdlib.h>
 #include <memory.h>
 
-typedef struct BigInt;
+typedef struct
+{
+    unsigned char* count;
+    int size;
+    int bits;
+} BigInt;
 
 void print_BigInt(BigInt bigint);
 
