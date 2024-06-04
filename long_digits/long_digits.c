@@ -1,27 +1,40 @@
-﻿typedef struct
+﻿#include "long_digits.h"
+
+typedef struct
 {
     unsigned char* count;
     int size;
     int bits;
 } BigInt;
 
-void print_BigInt(BigInt* bigint)
+void print_BigInt(BigInt bigint)
 {
-    for (int i = bigint->size - 1, j = 0; i >= 0; i--, j++)
+    for (int i = bigint.size - 1, j = 0; i >= 0; i--, j++)
     {
         if (!(j & 0b11111)) printf("\n");
-        printf("%02x", bigint->count[i]);
+        printf("%02x", bigint.count[i]);
     }
-    printf("\n%d, %d\n\n", bigint->size, bigint->bits);
+    printf("\n%d, %d\n\n", bigint.size, bigint.bits);
 }
 
-BigInt* BigInt_init(int size)
+BigInt BigInt_init(int size)
 {
-    BigInt* result = (BigInt*)malloc(sizeof(BigInt));
-    result->count = (unsigned char*)calloc(size, sizeof(unsigned char));
-    result->size = size;
-    result->bits = size << 3;
+    BigInt result;
+    result.count = (unsigned char*)calloc(size, sizeof(unsigned char));
+    result.size = size;
+    result.bits = size << 3;
     return result;
+}
+
+void copy_BigInt(BigInt* destination, BigInt* source)
+{
+    if (source->size > destination->size)
+    {
+        destination->count = (unsigned char*)realloc(destination->count, source->size);
+    }
+    memcpy(destination->count, source->count, source->size);
+    destination->size = source->size;
+    destination->bits = source->bits;
 }
 
 void update_bits(BigInt* bigint)
@@ -54,7 +67,7 @@ void update_options(BigInt* bigint)
     update_bits(bigint);
 }
 
-BigInt* string_to_BigInt(char* number)
+BigInt string_to_BigInt(char* number)
 {
     int len;
     for (len = 0; number[len] != '\0'; len++);
@@ -65,11 +78,11 @@ BigInt* string_to_BigInt(char* number)
         exit(0);
     }
 
-    BigInt* result = BigInt_init(((len - 2) >> 1) + (len & 1));
-    
+    BigInt result = BigInt_init(((len - 2) >> 1) + (len & 1));
+
     char symbol;
 
-    for (int i = 2, j = ((result->size - 1) << 1) + !(len & 1); i < len; i++, j--)
+    for (int i = 2, j = ((result.size - 1) << 1) + !(len & 1); i < len; i++, j--)
     {
         symbol = number[i];
 
@@ -85,10 +98,10 @@ BigInt* string_to_BigInt(char* number)
             exit(0);
         }
 
-        result->count[j >> 1] = (result->count[j >> 1] << 4) + symbol;
+        result.count[j >> 1] = (result.count[j >> 1] << 4) + symbol;
     }
 
-    update_options(result);
+    update_options(&result);
     return result;
 }
 
@@ -102,8 +115,8 @@ void left_shift(BigInt* destination, BigInt* source, int N)
 
     int new_size = source->bits + N;
     new_size = (new_size >> 3) + ((new_size & 0b111) > 0 ? 1 : 0);
-    BigInt *result = BigInt_init(new_size);
-    result->bits = source->bits + N;
+    BigInt result = BigInt_init(new_size);
+    result.bits = source->bits + N;
     int i = N >> 3;
 
     N &= 0b111;
@@ -112,12 +125,13 @@ void left_shift(BigInt* destination, BigInt* source, int N)
     for (int j = 0; j < source->size; i++, j++)
     {
         buffer = (source->count[j] << N) + buffer;
-        result->count[i] = buffer & 0xff;
+        result.count[i] = buffer & 0xff;
         buffer >>= 8;
     }
-    result->count[i] = buffer;
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    result.count[i] = buffer;
+
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void right_shift(BigInt* destination, BigInt* source, int N)
@@ -127,14 +141,14 @@ void right_shift(BigInt* destination, BigInt* source, int N)
         memcpy(destination, source, sizeof(BigInt));
         return;
     }
-    
+
     int byte = N >> 3;
-    BigInt* result = BigInt_init(source->size);
+    BigInt result = BigInt_init(source->size);
 
     if (byte >= source->size)
     {
-        update_options(result);
-        memcpy(destination, result, sizeof(BigInt));
+        update_options(&result);
+        copy_BigInt(destination, &result);
         return;
     }
 
@@ -142,20 +156,22 @@ void right_shift(BigInt* destination, BigInt* source, int N)
 
     int buffer = 0;
 
-    result->count[0] = source->count[byte] >> N;
+    result.count[0] = source->count[byte] >> N;
     for (int i = 1, j = byte + 1; i < source->size - byte; i++, j++)
     {
-        result->count[i - 1] += source->count[j] << (8 - N);
-        result->count[i] = source->count[j] >> N;
+        result.count[i - 1] += source->count[j] << (8 - N);
+        result.count[i] = source->count[j] >> N;
     }
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 int cmp_BigInt(BigInt* a, BigInt* b)
 {
+    update_options(a);
+    update_options(b);
+
     if (a->bits > b->bits)
         return -1;
     if (a->bits < b->bits)
@@ -168,7 +184,7 @@ int cmp_BigInt(BigInt* a, BigInt* b)
         i--;
         if (i < 0) return 0;
     }
-    
+
     if (a->count[i] > b->count[i]) return -1;
     if (a->count[i] < b->count[i]) return 1;
 }
@@ -182,7 +198,7 @@ void sub_BigInt(BigInt* a, BigInt* b, BigInt* destination)
     }
 
     int mark = 0, current_byte;
-    BigInt* result = BigInt_init(a->size);
+    BigInt result = BigInt_init(a->size);
 
     for (int i = 0; i < a->size; i++)
     {
@@ -191,72 +207,68 @@ void sub_BigInt(BigInt* a, BigInt* b, BigInt* destination)
 
         if (current_byte < 0)
         {
-            result->count[i] = 256 + current_byte;
+            result.count[i] = 256 + current_byte;
             mark = 1;
         }
         else
         {
-            result->count[i] = current_byte;
+            result.count[i] = current_byte;
             mark = 0;
         }
     }
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void add_BigInt(BigInt* first, BigInt* second, BigInt* destination)
 {
-    BigInt* a = BigInt_init(0);
-    BigInt* b = BigInt_init(0);
+    BigInt a = BigInt_init(64);
+    BigInt b = BigInt_init(64);
 
     if (first->size >= second->size)
     {
-        memcpy(a, first, sizeof(BigInt));
-        memcpy(b, second, sizeof(BigInt));
+        copy_BigInt(&a, first);
+        copy_BigInt(&b, second);
     }
     else
     {
-        memcpy(b, first, sizeof(BigInt));
-        memcpy(a, second, sizeof(BigInt));
+        copy_BigInt(&b, first);
+        copy_BigInt(&a, second);
     }
 
     int current_byte = 0;
-    BigInt* result = BigInt_init(a->size + 1);
+    BigInt result = BigInt_init(a.size + 1);
 
-    for (int i = 0; i < a->size; i++)
+    for (int i = 0; i < a.size; i++)
     {
-        current_byte += a->count[i];
-        if (i < b->size) current_byte += b->count[i];
+        current_byte += a.count[i];
+        if (i < b.size) current_byte += b.count[i];
 
-        result->count[i] = current_byte & 0xff;
+        result.count[i] = current_byte & 0xff;
         current_byte >>= 8;
     }
-    result->count[result->size - 1] = current_byte;
+    result.count[a.size] = current_byte;
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(a);
-    free(b);
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void inc_BigInt(BigInt* a, BigInt* destination)
 {
-    BigInt* result = BigInt_init(a->size + 1);
-    memcpy(result->count, a->count, a->size);
+    BigInt result = BigInt_init(a->size + 1);
+    copy_BigInt(&result, a);
+
     int i = 0;
 
-    for (int i = 0; i < result->size; i++)
+    for (int i = 0; i < result.size; i++)
     {
-        result->count[i]++;
-        if (result->count[i]) break;
+        result.count[i]++;
+        if (result.count[i]) break;
     }
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void mod_BigInt(BigInt* a_, BigInt* b, BigInt* destination)
@@ -273,175 +285,169 @@ void mod_BigInt(BigInt* a_, BigInt* b, BigInt* destination)
         exit(0);
     }
 
-    BigInt* a = BigInt_init(a_->size);
-    memcpy(a, a_, sizeof(BigInt));
+    BigInt a = BigInt_init(a_->size);
+    copy_BigInt(&a, a_);
 
-    BigInt* c = BigInt_init(a->size);
-    left_shift(c, b, a->bits - b->bits);
+    BigInt c = BigInt_init(a.size);
+    left_shift(&c, b, a.bits - b->bits);
 
-    while (cmp_BigInt(c, a) == -1)
-        right_shift(c, c, 1);
+    while (cmp_BigInt(&c, &a) == -1)
+        right_shift(&c, &c, 1);
 
-    while (cmp_BigInt(b, a) >= 0)
+    while (cmp_BigInt(b, &a) >= 0)
     {
-        right_shift(c, c, c->bits - a->bits);
-        if (cmp_BigInt(c, a) == -1)
-            right_shift(c, c, 1);
-        sub_BigInt(a, c, a);
+        right_shift(&c, &c, c.bits - a.bits);
+        if (cmp_BigInt(&c, &a) == -1)
+            right_shift(&c, &c, 1);
+        sub_BigInt(&a, &c, &a);
     }
 
-    update_options(a);
-    memcpy(destination, a, sizeof(BigInt));
-    free(a);
-    free(c);
+    update_options(&a);
+    copy_BigInt(destination, &a);
 }
 
 void mul_BigInt(BigInt* a, BigInt* b, BigInt* destination)
 {
     if (a->size == 0 || b->size == 0)
     {
-        BigInt* result = BigInt_init(0);
-        memcpy(destination, result, sizeof(BigInt));
-        free(result);
+        BigInt result = BigInt_init(0);
+        copy_BigInt(destination, &result);
         return;
     }
 
     int bit;
 
-    BigInt* result = BigInt_init(a->size + b->size);
-    memcpy(result->count, a->count, a->size);
+    BigInt result = BigInt_init(a->size + b->size);
+    copy_BigInt(&result, a);
 
     for (bit = 1 << 7; (bit & b->count[b->size - 1]) == 0; bit >>= 1);
     bit >>= 1;
 
-    for (int i = b->size - 1; i >= 0; i--)
+    int i = b->size - 1;
+    if (bit == 0)
+    {
+        bit = 1 << 7;
+        i--;
+    }
+
+    for (; i >= 0; i--)
     {
         while (bit > 0)
         {
-            left_shift(result, result, 1);
-            if (b->count[i] & bit) add_BigInt(result, a, result);
+            left_shift(&result, &result, 1);
+            if (b->count[i] & bit) add_BigInt(&result, a, &result);
             bit >>= 1;
         }
 
         bit = 1 << 7;
     }
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void inv_by_mod(BigInt* y, BigInt* p, BigInt* destination)
 {
-    BigInt* a = BigInt_init(p->size);
-    memcpy(a, y, sizeof(BigInt));
+    BigInt a = BigInt_init(p->size);
+    copy_BigInt(&a, y);
 
-    BigInt* b = BigInt_init(p->size);
-    memcpy(b, p, sizeof(BigInt));
+    BigInt b = BigInt_init(p->size);
+    copy_BigInt(&b, p);
 
-    BigInt* u = BigInt_init(p->size);
-    inc_BigInt(u, u);
+    BigInt u = BigInt_init(p->size);
+    inc_BigInt(&u, &u);
 
-    BigInt* v = BigInt_init(p->size);
-    BigInt* tmp = BigInt_init(p->size);
+    BigInt v = BigInt_init(p->size);
+    BigInt tmp = BigInt_init(p->size);
 
-    update_bits(u);
-    update_bits(v);
+    update_bits(&u);
+    update_bits(&v);
+    update_bits(&tmp);
 
-    while (a->bits)
+    while (a.bits)
     {
-        if ((a->count[0] & 1) == 0)
+        if ((a.count[0] & 1) == 0)
         {
-            right_shift(a, a, 1);
-            if (u->count[0] & 1) add_BigInt(u, p, u);
-            right_shift(u, u, 1);
+            right_shift(&a, &a, 1);
+            if (u.count[0] & 1) add_BigInt(&u, p, &u);
+            right_shift(&u, &u, 1);
         }
         else
         {
-            if (cmp_BigInt(a, b) == 1)
+            if (cmp_BigInt(&a, &b) == 1)
             {
-                memcpy(tmp, a, sizeof(BigInt));
-                memcpy(a, b, sizeof(BigInt));
-                memcpy(b, tmp, sizeof(BigInt));
+                copy_BigInt(&tmp, &a);
+                copy_BigInt(&a, &b);
+                copy_BigInt(&b, &tmp);
 
-                memcpy(tmp, u, sizeof(BigInt));
-                memcpy(u, v, sizeof(BigInt));
-                memcpy(v, tmp, sizeof(BigInt));
+                copy_BigInt(&tmp, &u);
+                copy_BigInt(&u, &v);
+                copy_BigInt(&v, &tmp);
             }
 
-            sub_BigInt(a, b, a);
-            right_shift(a, a, 1);
+            sub_BigInt(&a, &b, &a);
+            right_shift(&a, &a, 1);
 
-            if (cmp_BigInt(u, v) == 1)
+            if (cmp_BigInt(&u, &v) == 1)
             {
-                sub_BigInt(p, v, tmp);
-                add_BigInt(u, tmp, u);
+                sub_BigInt(p, &v, &tmp);
+                add_BigInt(&u, &tmp, &u);
             }
-            else sub_BigInt(u, v, u);
+            else sub_BigInt(&u, &v, &u);
 
-            if (u->count[0] & 1)
-                add_BigInt(u, p, u);
-            right_shift(u, u, 1);
+            if (u.count[0] & 1)
+                add_BigInt(&u, p, &u);
+            right_shift(&u, &u, 1);
         }
     }
 
-    update_options(v);
-    memcpy(destination, v, sizeof(BigInt));
-    free(a);
-    free(b);
-    free(u);
-    free(v);
-    free(tmp);
+    update_options(&v);
+    copy_BigInt(destination, &v);
 }
 
 void add_mod_p(BigInt* x, BigInt* y, BigInt* p, BigInt* destination)
 {
-    BigInt* result = BigInt_init(x->size + y->size);
-    memcpy(result->count, x->count, x->size);
+    BigInt result = BigInt_init(x->size + y->size);
+    copy_BigInt(&result, x);
 
-    add_BigInt(result, y, result);
-    mod_BigInt(result, p, result);
+    add_BigInt(&result, y, &result);
+    mod_BigInt(&result, p, &result);
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void sub_mod_p(BigInt* x_, BigInt* y_, BigInt* p, BigInt* destination)
 {
-    BigInt* result = BigInt_init(x_->size + y_->size);
-    BigInt* x = BigInt_init(x_->size);
-    BigInt* y = BigInt_init(y_->size);
+    BigInt result = BigInt_init(x_->size + y_->size);
+    BigInt x = BigInt_init(x_->size);
+    BigInt y = BigInt_init(y_->size);
 
-    memcpy(x, x_, sizeof(BigInt));
-    memcpy(y, y_, sizeof(BigInt));
+    copy_BigInt(&x, x_);
+    copy_BigInt(&y, y_);
 
-    mod_BigInt(x, p, x);
-    mod_BigInt(y, p, y);
+    mod_BigInt(&x, p, &x);
+    mod_BigInt(&y, p, &y);
 
-    if (cmp_BigInt(x, y) == 1)
+    if (cmp_BigInt(&x, &y) == 1)
     {
-        sub_BigInt(p, y, result);
-        add_BigInt(result, x, result);
+        sub_BigInt(p, &y, &result);
+        add_BigInt(&result, &x, &result);
     }
-    else sub_BigInt(x, y, result);
+    else sub_BigInt(&x, &y, &result);
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
-    free(x);
-    free(y);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }
 
 void mul_mod_p(BigInt* x, BigInt* y, BigInt* p, BigInt* destination)
 {
-    BigInt* result = BigInt_init(x->size + y->size);
-    memcpy(result->count, x->count, x->size);
+    BigInt result = BigInt_init(x->size + y->size);
+    copy_BigInt(&result, x);
 
-    mul_BigInt(result, y, result);
-    mod_BigInt(result, p, result);
+    mul_BigInt(x, y, &result);
+    mod_BigInt(&result, p, &result);
 
-    update_options(result);
-    memcpy(destination, result, sizeof(BigInt));
-    free(result);
+    update_options(&result);
+    copy_BigInt(destination, &result);
 }

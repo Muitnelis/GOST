@@ -4,9 +4,11 @@
 
 typedef struct BigInt;
 
-void print_BigInt(BigInt* bigint);
+void print_BigInt(BigInt bigint);
 
-BigInt* BigInt_init(int size);
+BigInt BigInt_init(int size);
+
+void copy_BigInt(BigInt* destination, BigInt* source);
 
 void update_bits(BigInt* bigint);
 
@@ -14,7 +16,7 @@ void update_size(BigInt* bigint);
 
 void update_options(BigInt* bigint);
 
-BigInt* string_to_BigInt(char* number);
+BigInt string_to_BigInt(char* number);
 
 void left_shift(BigInt* destination, BigInt* source, int N);
 
