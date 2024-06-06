@@ -21,6 +21,7 @@ BigInt BigInt_init(int size)
 
 void copy_BigInt(BigInt* destination, BigInt* source)
 {
+    memset(destination->count, 0, destination->size);
     if (source->size > destination->size)
     {
         destination->count = (unsigned char*)realloc(destination->count, source->size);
@@ -216,8 +217,8 @@ void sub_BigInt(BigInt* a, BigInt* b, BigInt* destination)
 
 void add_BigInt(BigInt* first, BigInt* second, BigInt* destination)
 {
-    BigInt a = BigInt_init(64);
-    BigInt b = BigInt_init(64);
+    BigInt a = BigInt_init(0);
+    BigInt b = BigInt_init(0);
 
     if (first->size >= second->size)
     {
