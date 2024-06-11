@@ -49,7 +49,6 @@ void CTR_Magma_ENC(char* input_file_path, char* output_file_path, char* key_file
         fwrite(buffer, sizeof(unsigned char), 8, encrypt_file);
 
         buffer_len = fread(buffer, sizeof(unsigned char), 8, input_file);
-        memset(buffer, 0, 8);
         next_IV(IV);
     }
 
