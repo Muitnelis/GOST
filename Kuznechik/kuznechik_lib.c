@@ -313,3 +313,43 @@ void shift(unsigned char* destination, unsigned char* source, int N)
         buffer >>= 8;
     }
 }
+
+void input_IV(char* IV_path, unsigned char IV[16])
+{
+    unsigned char buffer[16] = { 0 };
+    size_t buffer_len = 0;
+
+    FILE* IV_file = fopen(IV_path, "rb");
+
+    if (!IV_file)
+    {
+        printf("fopen(IV_file) error\n");
+        exit(0);
+    }
+
+    buffer_len = fread(buffer, sizeof(unsigned char), 8, IV_file);
+
+    if (buffer_len < 8)
+    {
+        printf("fread(IV_file) error\n");
+        exit(0);
+    }
+
+    fclose(IV_file);
+
+    memcpy(IV, buffer, 8);
+}
+
+void next_IV(unsigned char IV[16])
+{
+    int buffer = 1;
+
+    for (int i = 15; i >= 0; i--)
+    {
+        buffer += IV[i];
+        IV[i] = buffer & 0xff;
+        buffer >>= 8;
+
+        if (buffer == 0) break;
+    }
+}

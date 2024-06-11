@@ -38,3 +38,7 @@ void L_inv(unsigned char* block);
 void Kuznechik_DEC(unsigned char* block, unsigned char* keys);
 
 void shift(unsigned char* destination, unsigned char* source, int N);
+
+void input_IV(char* IV_path, unsigned char IV[16]);
+
+void next_IV(unsigned char IV[16]);
