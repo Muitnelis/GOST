@@ -10,7 +10,14 @@ void MAC_Magma(unsigned char* input_file_path, unsigned char* output_file_path, 
     unsigned char B[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b };
 
     unsigned char keys[32][4];
-    key_schedule(keys, key_file);
+
+    if (key_file) key_schedule(keys, key_file);
+    else
+    {
+        for (int i = 0; i < 32; i++)
+            for (int j = 0; j < 4; j++)
+                keys[i][j] = 0;
+    }
 
     Magma_ENC(R, keys);
 
@@ -25,10 +32,6 @@ void MAC_Magma(unsigned char* input_file_path, unsigned char* output_file_path, 
     {
         X_block(K2, B, 8);
     }
-
-    print_block(R, 8);
-    print_block(K1, 8);
-    print_block(K2, 8);
 
     unsigned char buffer[8];
     size_t buffer_len = 0;
