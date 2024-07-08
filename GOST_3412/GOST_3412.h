@@ -4,6 +4,20 @@
 
 //----------------------------
 
+typedef struct
+{
+    unsigned char** keys;
+    void (*key_schedule)(unsigned char*);
+    void (*encrypt)(unsigned char*);
+    void (*decrypt)(unsigned char*);
+} cipher;
+
+extern cipher Kuznechik;
+
+extern cipher Magma;
+
+//----------------------------
+
 void print_block(unsigned char* block, int len);
 
 void X_block(unsigned char* block, unsigned char* key, unsigned char bytes);
@@ -27,9 +41,9 @@ void L_block(unsigned char block[16]);
 
 void Feistel(unsigned char block[32], unsigned char key[16]);
 
-void key_schedule_Kuznechik(unsigned char keys[10][16], unsigned char* key_file_path);
+void key_schedule_Kuznechik(unsigned char* key_file_path);
 
-void Kuznechik_ENC(unsigned char block[16], unsigned char keys[10][16]);
+void Kuznechik_ENC(unsigned char block[16]);
 
 void R_block_inv(unsigned char block[16]);
 
@@ -41,7 +55,7 @@ void Kuznechik_DEC(unsigned char block[16], unsigned char keys[10][16]);
 
 extern unsigned char pi[8][16];
 
-void key_schedule_Magma(unsigned char keys[32][4], char* key_file_path);
+void key_schedule_Magma(char* key_file_path);
 
 void t_draft(unsigned char block[4]);
 
@@ -55,6 +69,6 @@ void G(unsigned char key[4], unsigned char block[8]);
 
 void G_star(unsigned char key[4], unsigned char block[8]);
 
-void Magma_ENC(unsigned char block[4], unsigned char keys[32][4]);
+void Magma_ENC(unsigned char block[4]);
 
-void Magma_DEC(unsigned char block[4], unsigned char keys[32][4]);
+void Magma_DEC(unsigned char block[4]);

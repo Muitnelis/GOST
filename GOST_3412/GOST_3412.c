@@ -2,6 +2,12 @@
 
 //----------------------------
 
+cipher Kuznechik = { NULL, key_schedule_Kuznechik, Kuznechik_ENC, Kuznechik_DEC };
+
+cipher Magma = { NULL, key_schedule_Magma, Magma_ENC, Magma_DEC };
+
+//----------------------------
+
 void print_block(unsigned char* block, int len)
 {
     printf("%02x ", block[0]);
@@ -176,7 +182,7 @@ void R_block(unsigned char block[16])
 {
     unsigned char new_block[16];
 
-    memcpy(new_block + sizeof(unsigned char), block, 15);
+    memcpy(new_block + 1 * sizeof(unsigned char), block, 15);
     new_block[0] = l_draft(block);
     memcpy(block, new_block, 16);
 }
@@ -209,8 +215,23 @@ void Feistel(unsigned char block[32], unsigned char key[16])
     memcpy(block, answer, 32);
 }
 
-void key_schedule_Kuznechik(unsigned char keys[10][16], unsigned char* key_file_path)
+void key_schedule_Kuznechik(unsigned char* key_file_path)
 {
+    if (Kuznechik.keys)
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            free(Kuznechik.keys[i]);
+        }
+        free(Kuznechik.keys);
+    }
+
+    Kuznechik.keys = (unsigned char**)malloc(10 * sizeof(unsigned char*));
+    for (int i = 0; i < 10; i++)
+    {
+        Kuznechik.keys[i] = (unsigned char*)malloc(16 * sizeof(unsigned char));
+    }
+
     unsigned char buffer[32];
     size_t buffer_len;
 
@@ -230,8 +251,8 @@ void key_schedule_Kuznechik(unsigned char keys[10][16], unsigned char* key_file_
         exit(0);
     }
 
-    memcpy(keys[0], buffer, 16);
-    memcpy(keys[1], buffer + sizeof(unsigned char) * 16, 16);
+    memcpy(Kuznechik.keys[0], buffer, 16);
+    memcpy(Kuznechik.keys[1], buffer + 16 * sizeof(unsigned char), 16);
 
     for (int i = 0; i < 4; i++)
     {
@@ -240,29 +261,29 @@ void key_schedule_Kuznechik(unsigned char keys[10][16], unsigned char* key_file_
             Feistel(buffer, c_const[(i << 3) + j]);
         }
 
-        memcpy(keys[(i + 1) << 1], buffer, 16);
-        memcpy(keys[((i + 1) << 1) + 1], buffer + sizeof(unsigned char) * 16, 16);
+        memcpy(Kuznechik.keys[(i + 1) << 1], buffer, 16);
+        memcpy(Kuznechik.keys[((i + 1) << 1) + 1], buffer + 16 * sizeof(unsigned char), 16);
     }
 
     fclose(key_file);
 };
 
-void Kuznechik_ENC(unsigned char block[16], unsigned char keys[10][16])
+void Kuznechik_ENC(unsigned char block[16])
 {
     for (int i = 0; i < 9; i++)
     {
-        X_block(block, keys[i], 16);
+        X_block(block, Kuznechik.keys[i], 16);
         S_block(block, S);
         L_block(block);
     }
-    X_block(block, keys[9], 16);
+    X_block(block, Kuznechik.keys[9], 16);
 }
 
 void R_block_inv(unsigned char block[16])
 {
     unsigned char new_block[16];
 
-    memcpy(new_block, block + sizeof(unsigned char), 15);
+    memcpy(new_block, block + 1 * sizeof(unsigned char), 15);
     new_block[15] = block[0];
     new_block[15] = l_draft(new_block);
     memcpy(block, new_block, 16);
@@ -276,15 +297,15 @@ void L_block_inv(unsigned char block[16])
     }
 }
 
-void Kuznechik_DEC(unsigned char block[16], unsigned char keys[10][16])
+void Kuznechik_DEC(unsigned char block[16])
 {
-    X_block(block, keys[9], 16);
+    X_block(block, Kuznechik.keys[9], 16);
 
     for (int i = 8; i >= 0; i--)
     {
         L_block_inv(block);
         S_block(block, S_inv);
-        X_block(block, keys[i], 16);
+        X_block(block, Kuznechik.keys[i], 16);
     }
 }
 
@@ -301,8 +322,23 @@ unsigned char pi[8][16] = {
     { 0x1, 0x7, 0xe, 0xd, 0x0, 0x5, 0x8, 0x3, 0x4, 0xf, 0xa, 0x6, 0x9, 0xc, 0xb, 0x2 }
 };
 
-void key_schedule_Magma(unsigned char keys[32][4], char* key_file_path)
+void key_schedule_Magma(char* key_file_path)
 {
+    if (Magma.keys)
+    {
+        for (int i = 0; i < 32; i++)
+        {
+            free(Magma.keys[i]);
+        }
+        free(Magma.keys);
+    }
+
+    Magma.keys = (unsigned char**)malloc(32 * sizeof(unsigned char*));
+    for (int i = 0; i < 32; i++)
+    {
+        Magma.keys[i] = (unsigned char*)malloc(4 * sizeof(unsigned char));
+    }
+
     unsigned char buffer[32];
     size_t buffer_len;
 
@@ -326,13 +362,13 @@ void key_schedule_Magma(unsigned char keys[32][4], char* key_file_path)
     {
         for (int j = 0; j < 8; j++)
         {
-            memcpy(keys[(i << 3) + j], buffer + (j << 2) * sizeof(unsigned char), 4);
+            memcpy(Magma.keys[(i << 3) + j], buffer + (j << 2) * sizeof(unsigned char), 4);
         }
     }
 
     for (int j = 0; j < 8; j++)
     {
-        memcpy(keys[24 + j], buffer + ((7 - j) << 2) * sizeof(unsigned char), 4);
+        memcpy(Magma.keys[24 + j], buffer + ((7 - j) << 2) * sizeof(unsigned char), 4);
     }
 
     fclose(key_file);
@@ -422,20 +458,22 @@ void G_star(unsigned char key[4], unsigned char block[8])
     memcpy(block, a1, 4);
 }
 
-void Magma_ENC(unsigned char block[4], unsigned char keys[32][4])
+void Magma_ENC(unsigned char block[4])
 {
     for (int i = 0; i < 31; i++)
     {
-        G(keys[i], block);
+        G(Magma.keys[i], block);
     }
-    G_star(keys[31], block);
+    G_star(Magma.keys[31], block);
 }
 
-void Magma_DEC(unsigned char block[4], unsigned char keys[32][4])
+void Magma_DEC(unsigned char block[4])
 {
     for (int i = 31; i > 0; i--)
     {
-        G(keys[i], block);
+        G(Magma.keys[i], block);
     }
-    G_star(keys[0], block);
+    G_star(Magma.keys[0], block);
 }
+
+//----------------------------
