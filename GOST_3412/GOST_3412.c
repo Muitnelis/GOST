@@ -2,9 +2,9 @@
 
 //----------------------------
 
-cipher Kuznechik = { NULL, key_schedule_Kuznechik, Kuznechik_ENC, Kuznechik_DEC };
+cipher Kuznechik = { 16, NULL, key_schedule_Kuznechik, Kuznechik_ENC, Kuznechik_DEC };
 
-cipher Magma = { NULL, key_schedule_Magma, Magma_ENC, Magma_DEC };
+cipher Magma = { 8, NULL, key_schedule_Magma, Magma_ENC, Magma_DEC };
 
 //----------------------------
 

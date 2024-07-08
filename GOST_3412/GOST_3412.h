@@ -6,6 +6,7 @@
 
 typedef struct
 {
+    int block_len;
     unsigned char** keys;
     void (*key_schedule)(unsigned char*);
     void (*encrypt)(unsigned char*);
